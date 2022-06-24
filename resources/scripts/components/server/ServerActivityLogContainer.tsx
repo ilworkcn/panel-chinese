@@ -11,8 +11,10 @@ import { Link } from 'react-router-dom';
 import classNames from 'classnames';
 import { styles as btnStyles } from '@/components/elements/button/index';
 import { XCircleIcon } from '@heroicons/react/solid';
+import useLocationHash from '@/plugins/useLocationHash';
 
 export default () => {
+    const { hash } = useLocationHash();
     const { clearAndAddHttpError } = useFlashKey('server:activity');
     const [ filters, setFilters ] = useState<ActivityLogFilters>({ page: 1, sorts: { timestamp: -1 } });
 
@@ -22,10 +24,8 @@ export default () => {
     });
 
     useEffect(() => {
-        const parsed = new URLSearchParams(location.search);
-
-        setFilters(value => ({ ...value, filters: { ip: parsed.get('ip'), event: parsed.get('event') } }));
-    }, [ location.search ]);
+        setFilters(value => ({ ...value, filters: { ip: hash.ip, event: hash.event } }));
+    }, [ hash ]);
 
     useEffect(() => {
         clearAndAddHttpError(error);
@@ -48,13 +48,16 @@ export default () => {
             {!data && isValidating ?
                 <Spinner centered/>
                 :
-                <div className={'bg-gray-700'}>
-                    {data?.items.map((activity) => (
-                        <ActivityLogEntry key={activity.timestamp.toString() + activity.event} activity={activity}>
-                            <span/>
-                        </ActivityLogEntry>
-                    ))}
-                </div>
+                !data?.items.length ?
+                    <p className={'text-sm text-center text-gray-400'}>No activity logs available for this server.</p>
+                    :
+                    <div className={'bg-gray-700'}>
+                        {data?.items.map((activity) => (
+                            <ActivityLogEntry key={activity.timestamp.toString() + activity.event} activity={activity}>
+                                <span/>
+                            </ActivityLogEntry>
+                        ))}
+                    </div>
             }
             {data && <PaginationFooter
                 pagination={data.pagination}
