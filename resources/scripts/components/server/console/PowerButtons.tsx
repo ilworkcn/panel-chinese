@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/elements/button/index';
 import Can from '@/components/elements/Can';
 import { ServerContext } from '@/state/server';
@@ -10,12 +10,15 @@ interface PowerButtonProps {
 }
 
 export default ({ className }: PowerButtonProps) => {
-    const [ open, setOpen ] = useState(false);
-    const status = ServerContext.useStoreState(state => state.status.value);
-    const instance = ServerContext.useStoreState(state => state.socket.instance);
+    const [open, setOpen] = useState(false);
+    const status = ServerContext.useStoreState((state) => state.status.value);
+    const instance = ServerContext.useStoreState((state) => state.socket.instance);
 
     const killable = status === 'stopping';
-    const onButtonClick = (action: PowerAction | 'kill-confirmed', e: React.MouseEvent<HTMLButtonElement, MouseEvent>): void => {
+    const onButtonClick = (
+        action: PowerAction | 'kill-confirmed',
+        e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+    ): void => {
         e.preventDefault();
         if (action === 'kill') {
             return setOpen(true);
@@ -26,6 +29,12 @@ export default ({ className }: PowerButtonProps) => {
             instance.send('set state', action === 'kill-confirmed' ? 'kill' : action);
         }
     };
+
+    useEffect(() => {
+        if (status === 'offline') {
+            setOpen(false);
+        }
+    }, [status]);
 
     return (
         <div className={className}>
@@ -51,7 +60,6 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.restart'}>
                 <Button.Text
                     className={'w-full sm:w-24'}
-                    variant={Button.Variants.Secondary}
                     disabled={!status}
                     onClick={onButtonClick.bind(this, 'restart')}
                 >
@@ -61,7 +69,6 @@ export default ({ className }: PowerButtonProps) => {
             <Can action={'control.stop'}>
                 <Button.Danger
                     className={'w-full sm:w-24'}
-                    variant={killable ? undefined : Button.Variants.Secondary}
                     disabled={status === 'offline'}
                     onClick={onButtonClick.bind(this, killable ? 'kill' : 'stop')}
                 >
